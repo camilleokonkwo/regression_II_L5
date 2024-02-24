@@ -1,0 +1,109 @@
+---
+title: "HW5"
+author: "Camille Okonkwo"
+date: "2024-02-26"
+output: github_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+```
+
+### reading in data
+
+```{r}
+hwdata1 = read_csv("data/hwdata1.csv")
+
+head(hwdata1)
+```
+
+# 1a) Cox models
+```{r}
+library(survival)
+library(lmtest)
+
+hwdata1$hormone = factor(hwdata1$hormone, levels = c("2", "1"))
+hwdata1$menopause = factor(hwdata1$menopause, levels=c("2", "1"))
+
+model1 = coxph(Surv(rectime,censrec) ~ hormone,
+            data = hwdata1,
+            ties = "efron")
+
+summary(model1)
+
+model2 = coxph(Surv(rectime, censrec) ~ hormone + age + menopause + size + nodes, 
+               data = hwdata1,
+               ties = "efron")
+summary(model2)
+
+# LRT using class notes
+-2*logLik(model2)
+-2*logLik(model1)
+
+# LRT using lmtest function
+lrtest(model1, model2)
+```
+
+# 1b) Cox models & Hand calculating HR + 95% CI
+```{r}
+model3 = coxph(Surv(rectime, censrec) ~ hormone + age + menopause + size + nodes + hormone*nodes, 
+               data = hwdata1,
+               ties = "efron")
+
+summary(model3)
+
+# extract information for hand calculating HR
+model3$coefficients[c(1,6)] # beta_1 & beta_6
+model3$var[1,1] # var(beta_1)
+model3$var[6,6] # var(beta_6)
+model3$var[1,6] # cov(beta_1, beta_6)
+```
+
+# Hazard ratio and 95% CI
+```{r}
+library(rms)
+
+dd = datadist(hwdata1)
+
+options(datadist="dd")
+
+ctr = contrast(cph(Surv(rectime, censrec) ~ hormone + age + menopause + size + nodes + hormone*nodes, 
+               data = hwdata1,
+               ties = "efron"),
+               list(hormone = 1, nodes = 5),
+               list(hormone = 2, nodes = 5))
+
+print(ctr, fun=exp)
+```
+
+# 1c) Survival curve and probability
+```{r}
+library(ggsurvfit)
+
+# curve for hormone = 1, age = 53, menopause = 1, size = 25, nodes = 3, based on model3
+survfit2(model3, 
+         newdata = data.frame(
+           hormone = factor(1, levels = c("2", "1")),
+           age = 53,
+           menopause = factor(1, levels = c("2", "1")),
+           size = 25, 
+           nodes = 3)) |>
+  ggsurvfit() +
+  scale_y_continuous(limits=c(0,1))
+
+# output the survival table
+model3.newdata = survfit(model3,
+                       newdata = data.frame(
+                         hormone = factor(1, levels = c("2", "1")),
+                         age = 53,
+                         menopause = factor(1, levels = c("2", "1")),
+                         size = 25, 
+                         nodes = 3))
+
+# what is the probability that this patient survives more than three years (1095 days)?
+surv_1095 = summary(model3.newdata, time = 1095)
+
+prob_surv = 1 - surv_1095$surv
+
+```

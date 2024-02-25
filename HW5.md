@@ -127,7 +127,7 @@ summary(model2)
     ## 'log Lik.' 3567.388 (df=1)
 
 ``` r
-# LRT using lmtest function
+# LRT using lmtest package
 lrtest(model1, model2)
 ```
 
@@ -206,9 +206,8 @@ model3$var[1,6] # cov(beta_1, beta_6)
 
     ## [1] -0.001652489
 
-# Hazard ratio and 95% CI
-
 ``` r
+# Hazard ratio and 95% CI
 library(rms)
 ```
 
@@ -271,7 +270,7 @@ survfit2(model3,
   scale_y_continuous(limits=c(0,1))
 ```
 
-![](HW5_files/figure-gfm/unnamed-chunk-5-1.png)<!-- -->
+![](HW5_files/figure-gfm/unnamed-chunk-4-1.png)<!-- -->
 
 ``` r
 # output the survival table
@@ -284,7 +283,12 @@ model3.newdata = survfit(model3,
                          nodes = 3))
 
 # what is the probability that this patient survives more than three years (1095 days)?
-surv_1095 = summary(model3.newdata, time = 1095)
-
-prob_surv = 1 - surv_1095$surv
+summary(model3.newdata, time = 1095)
 ```
+
+    ## Call: survfit(formula = model3, newdata = data.frame(hormone = factor(1, 
+    ##     levels = c("2", "1")), age = 53, menopause = factor(1, levels = c("2", 
+    ##     "1")), size = 25, nodes = 3))
+    ## 
+    ##  time n.risk n.event survival std.err lower 95% CI upper 95% CI
+    ##  1095    333     224    0.705  0.0336        0.642        0.774
